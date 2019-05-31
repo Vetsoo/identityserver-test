@@ -1,9 +1,11 @@
 ﻿// Copyright (c) Brock Allen & Dominick Baier. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See LICENSE in the project root for license information.
 
-
+using IdentityServer4;
 using IdentityServer4.Models;
+using IdentityServer4.Test;
 using System.Collections.Generic;
+using System.Security.Claims;
 
 namespace IdentityServer
 {
@@ -13,7 +15,8 @@ namespace IdentityServer
         {
             return new IdentityResource[]
             {
-                new IdentityResources.OpenId()
+                new IdentityResources.OpenId(),
+                new IdentityResources.Profile()
             };
         }
 
@@ -23,6 +26,37 @@ namespace IdentityServer
             {
                 new ApiResource("api1", "My API")
             };
+        }
+
+        public static List<TestUser> GetUsers()
+        {
+            return new List<TestUser>
+    {
+        new TestUser
+        {
+            SubjectId = "1",
+            Username = "alice",
+            Password = "password",
+
+            Claims = new []
+            {
+                new Claim("name", "Alice"),
+                new Claim("website", "https://alice.com")
+            }
+        },
+        new TestUser
+        {
+            SubjectId = "2",
+            Username = "bob",
+            Password = "password",
+
+            Claims = new []
+            {
+                new Claim("name", "Bob"),
+                new Claim("website", "https://bob.com")
+            }
+        }
+    };
         }
 
         public static IEnumerable<Client> GetClients()
@@ -44,7 +78,40 @@ namespace IdentityServer
 
                     // scopes that client has access to
                     AllowedScopes = { "api1" }
-                }
+                },
+
+                // resource owner password grant client
+                new Client
+                {
+                    ClientId = "ro.client",
+                    AllowedGrantTypes = GrantTypes.ResourceOwnerPassword,
+
+                    ClientSecrets =
+                    {
+                        new Secret("secret".Sha256())
+                    },
+                    AllowedScopes = { "api1" }
+                },
+
+                // OpenID Connect implicit flow client (MVC)
+        new Client
+        {
+            ClientId = "mvc",
+            ClientName = "MVC Client",
+            AllowedGrantTypes = GrantTypes.Implicit,
+
+            // where to redirect to after login
+            RedirectUris = { "https://localhost:4002/signin-oidc" },
+
+            // where to redirect to after logout
+            PostLogoutRedirectUris = { "https://localhost:4002/signout-callback-oidc" },
+
+            AllowedScopes = new List<string>
+            {
+                IdentityServerConstants.StandardScopes.OpenId,
+                IdentityServerConstants.StandardScopes.Profile
+            }
+        }
             };
         }
     }
